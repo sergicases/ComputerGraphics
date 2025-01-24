@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "mesh.h"
 
+
 Image::Image() {
 	width = 0; height = 0;
 	pixels = NULL;
@@ -309,19 +310,230 @@ bool Image::SaveTGA(const char* filename)
 	return true;
 }
 
-void Image::DrawRect(int x, int y, int w, int h, const Color& c)
-{
-
-	for (int i = 0; i < w; ++i) {
-		SetPixelUnsafe(x + i, y, c);
-		SetPixelUnsafe(x + i, y + h - 1, c);
+void Image::DrawRect(int x, int y, int w, int h, const Color& borderColor, int borderWidth, bool fillShapes, const Color& fillColor) {
+	// Draw the filled rectangle if requested
+	if (fillShapes) {
+		for (int i = 0; i < h; ++i) {
+			for (int j = 0; j < w; ++j) {
+				int px = x + j;
+				int py = y + i;
+				if (px >= 0 && px < (int)width && py >= 0 && py < (int)height) {
+					SetPixelUnsafe(px, py, fillColor);
+				}
+			}
+		}
 	}
 
-	for (int j = 0; j < h; ++j) {
-		SetPixelUnsafe(x, y + j, c);
-		SetPixelUnsafe(x + w - 1, y + j, c);
+	// Draw the rectangle border with the specified width
+	for (int bw = 0; bw < borderWidth; ++bw) {
+		// Top and Bottom borders
+		for (int i = 0; i < w; ++i) {
+			int topPx = x + i;
+			int topPy = y + bw;
+			int bottomPx = x + i;
+			int bottomPy = y + h - 1 - bw;
+
+			if (topPx >= 0 && topPx < (int)width && topPy >= 0 && topPy < (int)height) {
+				SetPixelUnsafe(topPx, topPy, borderColor); // Top border
+			}
+			if (bottomPx >= 0 && bottomPx < (int)width && bottomPy >= 0 && bottomPy < (int)height) {
+				SetPixelUnsafe(bottomPx, bottomPy, borderColor); // Bottom border
+			}
+		}
+
+		// Left and Right borders
+		for (int i = 0; i < h; ++i) {
+			int leftPx = x + bw;
+			int leftPy = y + i;
+			int rightPx = x + w - 1 - bw;
+			int rightPy = y + i;
+
+			if (leftPx >= 0 && leftPx < (int)width && leftPy >= 0 && leftPy < (int)height) {
+				SetPixelUnsafe(leftPx, leftPy, borderColor); // Left border
+			}
+			if (rightPx >= 0 && rightPx < (int)width && rightPy >= 0 && rightPy < (int)height) {
+				SetPixelUnsafe(rightPx, rightPy, borderColor); // Right border
+			}
+		}
 	}
 }
+
+
+
+
+void Image::ScanLineDDA(int x0, int y0, int x1, int y1, int& xIntersect, int y) {
+	if (y1 == y0) return; // Prevent division by zero
+
+	float slope = float(x1 - x0) / float(y1 - y0);  // Calculate the slope
+
+	// Calculate the intersection point on the scanline at y
+	xIntersect = x0 + int(slope * (y - y0));
+}
+
+void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor) {
+	// Create non-const local copies of the vertices
+	Vector2 v0 = p0;
+	Vector2 v1 = p1;
+	Vector2 v2 = p2;
+
+	// Draw the triangle's border
+	DrawLineDDA(v0.x, v0.y, v1.x, v1.y, borderColor);
+	DrawLineDDA(v1.x, v1.y, v2.x, v2.y, borderColor);
+	DrawLineDDA(v2.x, v2.y, v0.x, v0.y, borderColor);
+
+	// If the triangle should be filled
+	if (isFilled) {
+		// Sort vertices by y-coordinate (ascending order)
+		Vector2 sorted[3] = { v0, v1, v2 };
+		std::sort(sorted, sorted + 3, [](const Vector2& a, const Vector2& b) { return a.y < b.y; });
+
+		// Extract sorted vertices
+		v0 = sorted[0];
+		v1 = sorted[1];
+		v2 = sorted[2];
+
+		for (int y = v0.y; y <= v2.y; ++y) {
+			// For the current scanline, calculate intersections with edges
+			int x1, x2;
+			ScanLineDDA(v0.x, v0.y, v1.x, v1.y, x1, y); // v0 to v1
+			ScanLineDDA(v1.x, v1.y, v2.x, v2.y, x2, y); // v1 to v2
+			ScanLineDDA(v2.x, v2.y, v0.x, v0.y, x1, y); // v2 to v0
+
+			// Fill pixels between x1 and x2 for the current y
+			for (int x = x1; x <= x2; ++x) {
+				SetPixel(x, y, fillColor);
+			}
+		}
+	}
+}
+
+
+
+void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c) {
+	int dx = x1 - x0;
+	int dy = y1 - y0;
+
+	int steps = std::max(abs(dx), abs(dy));
+
+	// Avoid division by zero
+	if (steps == 0) {
+		SetPixel(x0, y0, c);
+		return;
+	}
+
+	float x_inc = dx / (float)steps;
+	float y_inc = dy / (float)steps;
+
+	float x = x0;
+	float y = y0;
+
+	for (int i = 0; i <= steps; i++) {
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			SetPixel(round(x), round(y), c);
+		}
+		x += x_inc;
+		y += y_inc;
+	}
+}
+
+
+void Image::DrawCircle(int x, int y, int r, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor)
+{
+	// Midpoint Circle Drawing Algorithm to draw the perimeter
+	int cx = x, cy = y; // Circle center
+	int radius = r;
+	int d = 1 - radius;  // Midpoint decision variable
+	int x0 = 0, y0 = radius;
+
+	// Function to plot points
+	auto plotCirclePoints = [&](int cx, int cy, int x, int y, const Color& color) {
+		SetPixel(cx + x, cy + y, color); // Octant 1
+		SetPixel(cx - x, cy + y, color); // Octant 2
+		SetPixel(cx + x, cy - y, color); // Octant 3
+		SetPixel(cx - x, cy - y, color); // Octant 4
+		SetPixel(cx + y, cy + x, color); // Octant 5
+		SetPixel(cx - y, cy + x, color); // Octant 6
+		SetPixel(cx + y, cy - x, color); // Octant 7
+		SetPixel(cx - y, cy - x, color); // Octant 8
+		};
+
+	// Draw the border (perimeter) of the circle
+	plotCirclePoints(cx, cy, x0, y0, borderColor);
+	while (x0 < y0)
+	{
+		if (d < 0)
+		{
+			d += 2 * x0 + 3;
+		}
+		else
+		{
+			d += 2 * (x0 - y0) + 5;
+			--y0;
+		}
+		++x0;
+		plotCirclePoints(cx, cy, x0, y0, borderColor);
+	}
+
+	// Fill the circle if the isFilled flag is true
+	if (isFilled)
+	{
+		for (int i = -radius; i <= radius; ++i) {
+			int height = static_cast<int>(sqrt(radius * radius - i * i)); // Calculate the y-distance for each x (i)
+			for (int j = cx - height; j <= cx + height; ++j) {
+				SetPixel(j, cy + i, fillColor); // Fill horizontal lines inside the circle
+			}
+		}
+	}
+
+	// Handle borderWidth by drawing concentric circles
+	for (int width = 1; width < borderWidth; ++width) {
+		int newRadius = radius - width;
+		if (newRadius <= 0) break; // Avoid negative radius
+		int d = 1 - newRadius;  // Reset decision variable
+		int x0 = 0, y0 = newRadius;
+
+		// Draw the concentric circle
+		plotCirclePoints(cx, cy, x0, y0, borderColor);
+		while (x0 < y0)
+		{
+			if (d < 0)
+			{
+				d += 2 * x0 + 3;
+			}
+			else
+			{
+				d += 2 * (x0 - y0) + 5;
+				--y0;
+			}
+			++x0;
+			plotCirclePoints(cx, cy, x0, y0, borderColor);
+		}
+	}
+}
+
+
+//3.2
+
+void Image::DrawImage(const Image& image, int x, int y)
+{
+	for (int i = 0; i < image.height; ++i)
+	{
+		for (int j = 0; j < image.width; ++j)
+		{
+			int dst_x = x + j;
+			int dst_y = y + i;
+
+			if (dst_x >= 0 && dst_x < this->width && dst_y >= 0 && dst_y < this->height)
+			{
+				this->SetPixel(dst_x, dst_y, image.GetPixel(j, i));
+			}
+		}
+	}
+}
+
+
+
+
 
 #ifndef IGNORE_LAMBDAS
 
@@ -393,4 +605,15 @@ void FloatImage::Resize(unsigned int width, unsigned int height)
 	this->width = width;
 	this->height = height;
 	pixels = new_pixels;
+}
+
+void Image::Fade(float factor) {
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			Color& pixel = GetPixel(x, y); // Get a reference to the pixel
+			pixel.r = static_cast<int>(pixel.r * factor);
+			pixel.g = static_cast<int>(pixel.g * factor);
+			pixel.b = static_cast<int>(pixel.b * factor);
+		}
+	}
 }

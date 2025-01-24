@@ -78,7 +78,27 @@ public:
 	bool LoadTGA(const char* filename, bool flip_y = false);
 	bool SaveTGA(const char* filename);
 
-	void DrawRect(int x, int y, int w, int h, const Color& c);
+	void DrawRect(int x, int y, int w, int h, const Color& borderColor,
+		int borderWidth = 1, bool fillShapes = false, const Color& fillColor = Color::BLACK); //Draw rectangle
+
+
+	void DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
+	 //Draw line
+
+	struct Cell {
+		int minX;  // Minimum x of the edge at this scanline
+		int maxX;  // Maximum x of the edge at this scanline
+	};
+
+		
+	// Add this to the Image class in image.h
+	void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
+	void ScanLineDDA(int x0, int y0, int x1, int y1, int& xIntersect, int y);
+
+	void Image::DrawCircle(int x, int y, int r, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
+
+
+
 
 	// Used to easy code
 	#ifndef IGNORE_LAMBDAS
@@ -94,6 +114,13 @@ public:
 		return *this;
 	}
 	#endif
+
+	//3.2
+	void DrawImage(const Image& image, int x, int y);
+	
+	void Image::Fade(float factor);
+
+
 };
 
 // Image storing one float per pixel instead of a 3 or 4 component Color
