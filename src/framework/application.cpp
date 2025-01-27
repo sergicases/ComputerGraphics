@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "utils.h" 
 
+
 Application::Application(const char* caption, int width, int height)
 {
 	this->window = createWindow(caption, width, height);
@@ -26,6 +27,8 @@ Application::~Application()
 void Application::Init(void)
 {
 	std::cout << "Initiating app..." << std::endl;
+	Matrix44 a = Matrix44();
+	this->entity1 = Entity("meshes/lee.obj",a);
 }
 
 // Render one frame
