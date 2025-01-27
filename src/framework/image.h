@@ -94,6 +94,8 @@ public:
 		return *this;
 	}
 	#endif
+
+	void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
 };
 
 // Image storing one float per pixel instead of a 3 or 4 component Color
@@ -126,3 +128,4 @@ public:
 
 	void Resize(unsigned int width, unsigned int height);
 };
+

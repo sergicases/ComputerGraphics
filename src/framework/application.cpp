@@ -32,6 +32,7 @@ void Application::Init(void)
 void Application::Render(void)
 {
 	// ...
+	framebuffer.DrawLineDDA(100, 100, 1000, 1000, Color::RED);
 
 	framebuffer.Render();
 }
