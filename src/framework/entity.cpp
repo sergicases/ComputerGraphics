@@ -1,9 +1,12 @@
 #include "entity.h"
 
-Entity::Entity(const char* path, Matrix44 model_matrix) {
+Entity::Entity(const char* path) {
 	this->mesh = new Mesh();
 	this->mesh->LoadOBJ(path);	
 	this-> model_matrix.SetIdentity();
+}
+
+Entity::Entity() {
 }
 
 void Entity::Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer) {
@@ -28,7 +31,9 @@ void Entity::Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer) {
 		Vector2 T2 = Vector2(p2.x + 1.f, p2.y + 1.f) * 0.5f*resolution;
 		Vector2 T3 = Vector2(p3.x + 1.f, p3.y + 1.f) * 0.5f * resolution;
 
-		
+		framebuffer->SetPixel(T1.x, T1.y, Color::RED);
+		framebuffer->SetPixel(T2.x, T2.y, Color::RED);
+		framebuffer->SetPixel(T3.x, T3.y, Color::RED);
 	}
 
 	

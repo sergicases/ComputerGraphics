@@ -421,3 +421,49 @@ void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c) {
 		y += y_inc;
 	}
 }
+
+void Image::ScanLineDDA(int x0, int y0, int x1, int y1, int& xIntersect, int y) {
+	if (y1 == y0) return; // Prevent division by zero
+
+	float slope = float(x1 - x0) / float(y1 - y0);  // Calculate the slope
+
+	// Calculate the intersection point on the scanline at y
+	xIntersect = x0 + int(slope * (y - y0));
+}
+
+void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor) {
+	// Create non-const local copies of the vertices
+	Vector2 v0 = p0;
+	Vector2 v1 = p1;
+	Vector2 v2 = p2;
+
+	// Draw the triangle's border
+	DrawLineDDA(v0.x, v0.y, v1.x, v1.y, borderColor);
+	DrawLineDDA(v1.x, v1.y, v2.x, v2.y, borderColor);
+	DrawLineDDA(v2.x, v2.y, v0.x, v0.y, borderColor);
+
+	// If the triangle should be filled
+	if (isFilled) {
+		// Sort vertices by y-coordinate (ascending order)
+		Vector2 sorted[3] = { v0, v1, v2 };
+		std::sort(sorted, sorted + 3, [](const Vector2& a, const Vector2& b) { return a.y < b.y; });
+
+		// Extract sorted vertices
+		v0 = sorted[0];
+		v1 = sorted[1];
+		v2 = sorted[2];
+
+		for (int y = v0.y; y <= v2.y; ++y) {
+			// For the current scanline, calculate intersections with edges
+			int x1, x2;
+			ScanLineDDA(v0.x, v0.y, v1.x, v1.y, x1, y); // v0 to v1
+			ScanLineDDA(v1.x, v1.y, v2.x, v2.y, x2, y); // v1 to v2
+			ScanLineDDA(v2.x, v2.y, v0.x, v0.y, x1, y); // v2 to v0
+
+			// Fill pixels between x1 and x2 for the current y
+			for (int x = x1; x <= x2; ++x) {
+				SetPixel(x, y, fillColor);
+			}
+		}
+	}
+}

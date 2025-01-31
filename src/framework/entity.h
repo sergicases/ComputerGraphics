@@ -9,18 +9,13 @@ class Entity {
     Matrix44 model_matrix;
     int rendering_mode;
 public:
-    
 
-    Entity();                               // Default constructor
+
+    Entity();
+    Entity(const char* path); // Default constructor
     Entity(const char* path, Matrix44 m); // Parameterized constructor
 
     void Entity::Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer);
-    
-    
 
-
-
-    
 
 };
-

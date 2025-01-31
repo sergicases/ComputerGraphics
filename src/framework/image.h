@@ -96,6 +96,8 @@ public:
 	#endif
 
 	void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
+	void Image::ScanLineDDA(int x0, int y0, int x1, int y1, int& xIntersect, int y);
+	void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor)
 };
 
 // Image storing one float per pixel instead of a 3 or 4 component Color

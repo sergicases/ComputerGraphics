@@ -2,6 +2,8 @@
 #include "mesh.h"
 #include "shader.h"
 #include "utils.h" 
+#include "framework.h"
+#include "camera.h"
 
 
 Application::Application(const char* caption, int width, int height)
@@ -27,8 +29,9 @@ Application::~Application()
 void Application::Init(void)
 {
 	std::cout << "Initiating app..." << std::endl;
-	Matrix44 a = Matrix44();
-	this->entity1 = Entity("meshes/lee.obj",a);
+	
+	this->entity1 = Entity("meshes / lee.obj");
+	camera = new Camera();
 }
 
 // Render one frame
@@ -36,7 +39,8 @@ void Application::Render(void)
 {
 	// ...
 	framebuffer.DrawLineDDA(100, 100, 1000, 1000, Color::RED);
-
+	FloatImage f1 = FloatImage();
+	entity1.Render(&framebuffer, camera, &f1);
 	framebuffer.Render();
 }
 
